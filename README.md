@@ -100,6 +100,8 @@ AuraMemory/ (Git Repository Root)
 ├── examples/
 │   ├── basic_usage.py             # Basic API walkthrough example
 │   └── guardrails_demo.py         # Safety scrubbing & topic block demo
+├── Dockerfile                      # Container image (zero-dep slim Python base)
+├── docker-compose.yml              # One-command build/run + persistent data volume
 ├── README.md                      # Inner documentation
 └── CHANGELOG.md                   # Chronicles of breaks & achievements
 ```
@@ -197,6 +199,48 @@ Run the self-reflective Git Pusher Agent to analyze local repository changes, fo
 ```bash
 python3 agents/pusher.py
 ```
+
+---
+
+## 🐳 Running with Docker
+
+AuraMemory ships with a `Dockerfile` and `docker-compose.yml` so you can run the engine and the Commander dashboard as an isolated, reproducible container. Because AuraMemory has **zero external dependencies** (100% Python standard library), the image builds in seconds off a slim Python base — no `pip install` step required.
+
+### Requirements
+- **Docker Engine** (or Docker Desktop). On Windows + WSL 2, enable **Docker Desktop → Settings → Resources → WSL Integration** for your distro first.
+- That's it — no local Python or virtualenv needed; everything runs inside the container.
+
+### 1. Build & Launch (Dashboard Mode)
+From the repository root:
+```bash
+docker compose up -d --build
+```
+This builds the image, starts the container in the background, mounts `./data` as a persistent volume (so your memory brain survives restarts), and exposes the dashboard. Then open:
+
+**[http://localhost:8001/visuals/](http://localhost:8001/visuals/)**
+
+### 2. Verify the Engine Inside the Container
+Run the built-in MCP self-validation harness within the running container:
+```bash
+docker compose exec auramemory python3 core/gateway.py --validate
+```
+This confirms all five native tools (`auramem_commit`, `auramem_recall`, `auramem_consolidate`, `auramem_compress_context`, `auramem_repo_strategist`) respond correctly.
+
+### 3. MCP Stdio Mode (for AI Agent Clients)
+The default container serves the dashboard. To instead run the gateway as an interactive MCP JSON-RPC server over `stdin/stdout`, launch it directly (build the image first via step 1 so the `auramemory:latest` tag exists):
+```bash
+docker run -i --rm -v "$PWD/data:/app/data" auramemory:latest python3 core/gateway.py
+```
+
+### 4. Managing the Container
+```bash
+docker compose logs -f          # tail live logs
+docker compose down             # stop and remove the container
+docker compose up -d --build    # rebuild and relaunch after code changes
+```
+
+> [!NOTE]
+> The `./data` directory is bind-mounted into the container, so all committed memories (JSONL/SQLite) persist on the host across container rebuilds and restarts.
 
 ---
 

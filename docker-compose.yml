@@ -1,0 +1,10 @@
+services:
+  auramemory:
+    build: .
+    image: auramemory:latest
+    container_name: auramemory
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./data:/app/data      # persist the memory brain across restarts
+    restart: unless-stopped
